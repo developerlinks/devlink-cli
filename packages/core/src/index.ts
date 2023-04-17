@@ -105,8 +105,11 @@ async function execCommand({ packagePath, packageName, packageVersion }, extraOp
     }
     const _config = Object.assign({}, config, extraOptions);
     if (fs.existsSync(rootFile)) {
-      const code = `require('${rootFile}')(${JSON.stringify(_config)})`;
-      const p = exec('node', ['-e', code], { stdio: 'inherit' });
+      const code = `const { default: init } = require('${rootFile}'); init(${JSON.stringify(
+        _config,
+      )});`;
+
+      const p = exec('node', ['-e', code.replace(/\n/g, '')], { stdio: 'inherit' });
       p.on('error', e => {
         log.verbose('命令执行失败：', e);
         handleError(e);
@@ -212,7 +215,6 @@ function checkRoot() {
 }
 
 function checkNodeVersion() {
-  const semver = require('semver');
   if (!semver.gte(process.version, LOWEST_NODE_VERSION)) {
     throw new Error(colors.red(`devlink-cli 需要安装 v${LOWEST_NODE_VERSION} 以上版本的 Node.js`));
   }
