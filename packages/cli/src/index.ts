@@ -40,6 +40,7 @@ function registerCommand() {
     .action(async (type, { packagePath, force }) => {
       const packageName = '@devlink/cli-init';
       const packageVersion = await getLatestVersion(packageName);
+      console.log('packageVersion------', packageVersion);
       await execCommand({ packagePath, packageName, packageVersion }, { type, force });
     });
 

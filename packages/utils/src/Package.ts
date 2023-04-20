@@ -6,7 +6,7 @@ import log from './log';
 import { getNpmLatestSemverVersion, getNpmRegistry } from './npm';
 import formatPath from './formatPath';
 
-const useOriginNpm = false;
+const useOriginNpm = true;
 
 interface PackageOptions {
   targetPath: string;
@@ -47,10 +47,7 @@ class Package {
     }
     log.verbose(this.targetPath);
     log.verbose('storePath', this.storePath);
-    const latestVersion = await getNpmLatestSemverVersion(
-      this.packageName,
-      this.packageVersion,
-    );
+    const latestVersion = await getNpmLatestSemverVersion(this.packageName, this.packageVersion);
     log.verbose('latestVersion', this.packageName, latestVersion);
     if (latestVersion) {
       this.packageVersion = latestVersion;
@@ -110,7 +107,7 @@ class Package {
     return null;
   }
 
-  async update(){
+  async update() {
     const latestVersion = await this.getLatestVersion();
     log.verbose('install', this.packageName, latestVersion);
     return npminstall({
