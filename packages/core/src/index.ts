@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import colors from 'colors/safe';
 import { homedir } from 'os';
 import semver from 'semver';
-import { login, logout, whoami } from '@devlink/auth';
+import { login, logout, whoami } from '@devlink/cli-auth';
 import {
   log,
   Package,
