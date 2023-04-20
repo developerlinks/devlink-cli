@@ -5,20 +5,21 @@
     "packages/*"
   ],
   "scripts": {
-    "init": "yarn && lerna bootstrap",
+    "init": "npm install && lerna bootstrap",
     "format": "prettier --config .prettierrc.json --write \"packages/**/*.{js,ts}\"",
     "eslint": "eslint packages/ --fix --cache --quiet --ext .js,.jsx,.ts,.tsx",
     "preRelease": "lerna run clean && lerna run build",
-    "publish": "lerna publish"
+    "publish": "lerna publish",
+    "dev": "lerna run dev --parallel"
   },
   "devDependencies": {
-    "lerna": "^5.3.0",
-    "prettier": "^2.7.1",
-    "lint-staged": "^10.2.4",
-    "husky": "^4.3.0",
+    "@commitlint/config-conventional": "^16.2.1",
     "eslint": "^6.0.0",
     "eslint-plugin-prettier": "^3.1.3",
-    "@commitlint/config-conventional": "^16.2.1"
+    "husky": "^4.3.0",
+    "lerna": "^6.6.1",
+    "lint-staged": "^10.2.4",
+    "prettier": "^2.7.1"
   },
   "lint-staged": {
     "*.{js,json,yml,yaml,css,scss,ts,tsx,md}": [

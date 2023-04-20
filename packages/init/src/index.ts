@@ -2,7 +2,7 @@ import fs from 'fs';
 import fse from 'fs-extra';
 import path from 'path';
 import { log, inquirer, spinner, Package, sleep, exec } from '@devlink/cli-utils';
-import { fetchMaterials } from './getProjectTemplate';
+import { fetchMyGroups, fetchMyMaterials } from './getProjectTemplate';
 
 interface Options {
   targetPath?: string;
@@ -16,6 +16,12 @@ interface Template {
   version: string;
   path?: string;
   startCommand?: string;
+  groups: Group[];
+}
+interface Group {
+  id: string;
+  name: string;
+  description: string;
 }
 
 async function init(options: Options): Promise<void> {
@@ -27,15 +33,27 @@ async function init(options: Options): Promise<void> {
     }
     log.verbose('init', options);
     // 完成项目初始化的准备和校验工作
-    const result: { templateList: Template[] } | undefined = await prepare(options);
+    const result: { materials: Template[]; groupNames: string[] } | undefined = await prepare(
+      options,
+    );
     if (!result) {
       log.info('创建项目终止');
       return;
     }
-    // 获取项目模板列表
-    const { templateList } = result;
+    const { materials, groupNames } = result;
+
+    const choiceGroupName = await inquirer({
+      choices: createGroupChoice(groupNames),
+      message: '请选择分组',
+    });
+    log.verbose('choiceGroupName', choiceGroupName);
+    // materialsForChoiceGroup 筛选出分组名为 choiceGroupName 的物料
+    const materialsForChoiceGroup = materials.filter(material =>
+      material.groups.some(group => group.name === choiceGroupName),
+    );
+
     // 缓存项目模板文件
-    const template: Template = await downloadTemplate(templateList, options);
+    const template: Template = await downloadTemplate(materialsForChoiceGroup, options);
     log.verbose('template', template);
     // 安装项目模板
     await installTemplate(template, options);
@@ -44,7 +62,7 @@ async function init(options: Options): Promise<void> {
   }
 }
 
-async function npminstall(targetPath: string): Promise<number> {
+async function npminstall(targetPath: string) {
   return new Promise((resolve, reject) => {
     const p = exec('npm', ['install'], { stdio: 'inherit', cwd: targetPath });
     p.on('error', e => {
@@ -57,7 +75,7 @@ async function npminstall(targetPath: string): Promise<number> {
   });
 }
 
-async function execStartCommand(targetPath: string, startCommand: string[]): Promise<number> {
+async function execStartCommand(targetPath: string, startCommand: string[]) {
   return new Promise((resolve, reject) => {
     const p = exec(startCommand[0], startCommand.slice(1), { stdio: 'inherit', cwd: targetPath });
     p.on('error', e => {
@@ -69,7 +87,7 @@ async function execStartCommand(targetPath: string, startCommand: string[]): Pro
   });
 }
 
-async function installTemplate(template: Template, options: Options): Promise<void> {
+async function installTemplate(template: Template, options: Options) {
   // 安装模板
   let spinnerStart = spinner(`正在安装模板...`);
   await sleep(1000);
@@ -119,6 +137,7 @@ async function downloadTemplate(templateList: Template[], options: Options): Pro
     log.notice('模板路径', `${targetPath}`);
   }
   // 生成模板路径
+  log.verbose('templatePkg', templatePkg);
   const templatePath = path.resolve(templatePkg.npmFilePath, 'template');
   log.verbose('template path', templatePath);
   if (!fs.existsSync(templatePath)) {
@@ -130,7 +149,7 @@ async function downloadTemplate(templateList: Template[], options: Options): Pro
   };
   return template;
 }
-async function prepare(options: Options): Promise<{templateList: Template[]}> {
+async function prepare(options: Options) {
   let fileList: string[] = fs.readdirSync(process.cwd());
   fileList = fileList.filter(file => ['node_modules', '.git', '.DS_Store'].indexOf(file) < 0);
   log.verbose('fileList', fileList);
@@ -145,7 +164,7 @@ async function prepare(options: Options): Promise<{templateList: Template[]}> {
   log.verbose('continueWhenDirNotEmpty', continueWhenDirNotEmpty);
 
   if (!continueWhenDirNotEmpty) {
-    return { templateList: [] };
+    return { materials: [], groupNames: [] };
   }
   log.verbose('options', options);
   if (options.force) {
@@ -161,21 +180,35 @@ async function prepare(options: Options): Promise<{templateList: Template[]}> {
     }
   }
   log.verbose('before getProjectTemplate');
-  const data = await fetchMaterials();
-  log.verbose('templateList', data.data.length, data.data);
-  if (data.data.length === 0) {
-    throw new Error('项目模板列表获取失败');
+  const materialData = await fetchMyMaterials();
+  const materials = materialData.data.materials;
+  const groupData = await fetchMyGroups();
+  const groupNames = groupData.data.groups.map(item => item.name);
+  if (groupNames.length === 0) {
+    throw new Error('分组获取失败');
   }
+  log.verbose('list', {
+    groupNames,
+    materials,
+  });
+
   return {
-    templateList: data.data,
+    groupNames,
+    materials,
   };
 }
 
-function createTemplateChoice(list: Template[]): { value: string, name: string }[] {
+function createTemplateChoice(list: Template[]) {
   return list.map(item => ({
     value: item.npmName,
     name: item.name,
   }));
 }
 
+function createGroupChoice(list: string[]) {
+  return list.map(item => ({
+    value: item,
+    name: item,
+  }));
+}
 export default init;

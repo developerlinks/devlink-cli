@@ -4,8 +4,8 @@ import { getNpmRegistry, getNpmInfo, getLatestVersion, getNpmLatestSemverVersion
 import inquirer from './inquirer';
 import spinner from './spinner';
 import formatPath from './formatPath';
-
 import Package from './Package';
+import * as constant from './constant';
 
 function sleep(timeout: number): Promise<void> {
   return new Promise(resolve => {
@@ -26,4 +26,18 @@ function exec(
   return require('child_process').spawn(cmd, cmdArgs, options || {});
 }
 
-export { log, request, getNpmRegistry, getNpmInfo, getLatestVersion, getNpmLatestSemverVersion, inquirer, spinner, Package, sleep, exec, formatPath };
+export {
+  log,
+  request,
+  getNpmRegistry,
+  getNpmInfo,
+  getLatestVersion,
+  getNpmLatestSemverVersion,
+  inquirer,
+  spinner,
+  Package,
+  sleep,
+  exec,
+  formatPath,
+  constant,
+};

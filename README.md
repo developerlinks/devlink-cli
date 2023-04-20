@@ -2,11 +2,9 @@
 
 🎳 cli tool for creating apps
 
+## Feature
 
-# Feature
-
-
-# Start
+## Start
 
 ```bash
 npm install -g @devlink/cli
@@ -17,7 +15,7 @@ yarn global add @devlink/cli
 
 ```
 
-# Create project
+## Create project
 
 Select the project you want to initialize through the command line
 
@@ -31,7 +29,7 @@ Force empty current directory
 devlink init --force
 ```
 
-# Other API
+## Other API
 
 clear cache
 
@@ -49,8 +47,14 @@ In debug mode, you can view more installation information to troubleshoot errors
 devlink --debug
 ```
 
-
 > If you want to add your template, please write your warehouse address in pr
 
+## debug
 
-devlink init --packagePath /Users/zhangbaolin/code/myProject/devlink/cli/packages/init/ --debug
+### init
+
+such as
+
+```bash
+devlink init --packagePath /Users/bowling/code/devlinks/devlink-cli/packages/init/lib/ --debug
+```
