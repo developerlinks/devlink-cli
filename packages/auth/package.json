@@ -1,6 +1,6 @@
 {
   "name": "@devlink/cli-auth",
-  "version": "0.0.5-alpha.0",
+  "version": "0.0.5",
   "description": "devlink-cli auth moudle",
   "keywords": [
     "cli",
@@ -35,7 +35,7 @@
     "url": "https://github.com/developerlinks/devlink-cli/issues"
   },
   "dependencies": {
-    "@devlink/cli-utils": "^0.0.5-alpha.0"
+    "@devlink/cli-utils": "^0.0.5"
   },
   "gitHead": "9992e8525e0c3bdf09122fc776cff268c44bed26"
 }
