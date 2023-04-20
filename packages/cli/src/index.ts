@@ -40,7 +40,6 @@ function registerCommand() {
     .action(async (type, { packagePath, force }) => {
       const packageName = '@devlink/cli-init';
       const packageVersion = await getLatestVersion(packageName);
-      console.log('packageVersion------', packageVersion);
       await execCommand({ packagePath, packageName, packageVersion }, { type, force });
     });
 
@@ -121,10 +120,10 @@ async function execCommand({ packagePath, packageName, packageVersion }, extraOp
         version: packageVersion,
       });
       if (await initPackage.exists()) {
-        log.verbose('更新 package');
+        log.notice('更新 package');
         await initPackage.update();
       } else {
-        log.verbose('安装 package');
+        log.notice('安装 package');
         await initPackage.install();
       }
       rootFile = initPackage.getRootFilePath();

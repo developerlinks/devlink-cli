@@ -36,8 +36,10 @@
     "inquirer": "^6.1.0",
     "npminstall": "^6.5.0",
     "npmlog": "^6.0.2",
+    "path": "^0.12.7",
     "semver": "^7.3.7",
-    "url-join": "^4.0.0"
+    "url-join": "^4.0.0",
+    "user-home": "^3.0.0"
   },
   "devDependencies": {
     "mocha": "^10.0.0"
