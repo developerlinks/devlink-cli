@@ -6,7 +6,7 @@
     "cli"
   ],
   "author": "zhangbaolin <zhangbaolin.work@foxmail.com>",
-  "homepage": "https://github.com/developerlinks/devlink#readme",
+  "homepage": "https://github.com/developerlinks/devlink-cli#readme",
   "license": "ISC",
   "main": "lib/src/index.js",
   "bin": {
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/developerlinks/devlink.git"
+    "url": "git+https://github.com/developerlinks/devlink-cli.git"
   },
   "scripts": {
     "dev": "tsc -w",
@@ -33,6 +33,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@devlink/auth": "^0.0.0",
     "@devlink/cli-utils": "^0.0.3-alpha.0",
     "colors": "^1.4.0",
     "commander": "^10.0.0",
@@ -45,6 +46,7 @@
     "user-home": "^3.0.0"
   },
   "devDependencies": {
+    "@types/node": "^18.15.11",
     "mocha": "^10.0.0"
   },
   "gitHead": "7e11ba0af678420dd4b5fd8bb57da0a08d486a20"

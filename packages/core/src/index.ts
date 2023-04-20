@@ -5,15 +5,16 @@ import { Command } from 'commander';
 import colors from 'colors/safe';
 import { homedir } from 'os';
 import semver from 'semver';
+import { login, logout, whoami } from '@devlink/auth';
 import {
   log,
   Package,
   exec,
   getLatestVersion,
   getNpmLatestSemverVersion,
+  constant,
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
-import { LOWEST_NODE_VERSION, DEFAULT_CLI_HOME, NPM_NAME, DEPENDENCIES_PATH } from './const';
 
 let config;
 let args;
@@ -43,6 +44,30 @@ function registerCommand() {
     });
 
   program
+    .command('login')
+    .description('登录')
+    .action(async () => {
+      await login();
+    });
+
+  program
+    .command('whoami')
+    .description('查询个人信息')
+    .action(async () => {
+      const userInfo = await whoami();
+      log.notice('用户名', userInfo.user.username);
+      log.notice('邮箱', userInfo.user.email);
+      log.verbose('用户信息', userInfo);
+    });
+
+  program
+    .command('logout')
+    .description('登录')
+    .action(async () => {
+      await logout();
+    });
+
+  program
     .command('clean')
     .description('清空缓存文件')
     .option('-a, --all', '清空全部')
@@ -52,7 +77,7 @@ function registerCommand() {
       if (options.all) {
         cleanAll();
       } else if (options.dep) {
-        const depPath = path.resolve(config.cliHome, DEPENDENCIES_PATH);
+        const depPath = path.resolve(config.cliHome, constant.DEPENDENCIES_PATH);
         if (fs.existsSync(depPath)) {
           fse.emptyDirSync(depPath);
           log.success('清空依赖文件成功', depPath);
@@ -85,7 +110,7 @@ async function execCommand({ packagePath, packageName, packageVersion }, extraOp
       rootFile = execPackage.getRootFilePath(true);
     } else {
       const { cliHome } = config;
-      const packageDir = `${DEPENDENCIES_PATH}`;
+      const packageDir = `${constant.DEPENDENCIES_PATH}`;
       const targetPath = path.resolve(cliHome, packageDir);
       const storePath = path.resolve(targetPath, 'node_modules');
       const initPackage = new Package({
@@ -155,11 +180,11 @@ async function prepare() {
 async function checkGlobalUpdate() {
   log.verbose('检查 @devlink/cli 最新版本');
   const currentVersion = packageConfig.version;
-  const lastVersion = await getNpmLatestSemverVersion(NPM_NAME, currentVersion);
+  const lastVersion = await getNpmLatestSemverVersion(constant.NPM_NAME, currentVersion);
   if (semver.gt(lastVersion, currentVersion)) {
     log.warn(
-      colors.yellow(`请手动更新 ${NPM_NAME}，当前版本：${packageConfig.version}，最新版本：${lastVersion}
-                更新命令： npm install -g ${NPM_NAME}`),
+      colors.yellow(`请手动更新 ${constant.NPM_NAME}，当前版本：${packageConfig.version}，最新版本：${lastVersion}
+                更新命令： npm install -g ${constant.NPM_NAME}`),
     );
   }
 }
@@ -181,7 +206,7 @@ function createCliConfig() {
   if (process.env.CLI_HOME) {
     cliConfig['cliHome'] = path.join(homedir(), process.env.CLI_HOME);
   } else {
-    cliConfig['cliHome'] = path.join(homedir(), DEFAULT_CLI_HOME);
+    cliConfig['cliHome'] = path.join(homedir(), constant.DEFAULT_CLI_HOME);
   }
   return cliConfig;
 }
@@ -215,8 +240,10 @@ function checkRoot() {
 }
 
 function checkNodeVersion() {
-  if (!semver.gte(process.version, LOWEST_NODE_VERSION)) {
-    throw new Error(colors.red(`devlink-cli 需要安装 v${LOWEST_NODE_VERSION} 以上版本的 Node.js`));
+  if (!semver.gte(process.version, constant.LOWEST_NODE_VERSION)) {
+    throw new Error(
+      colors.red(`devlink-cli 需要安装 v${constant.LOWEST_NODE_VERSION} 以上版本的 Node.js`),
+    );
   }
 }
 
