@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import fse from 'fs-extra';
 import { Command } from 'commander';
-import colors from 'colors/safe';
+import chalk from 'chalk';
 import { homedir } from 'os';
 import semver from 'semver';
 import { login, logout, whoami } from '@devlink/cli-auth';
@@ -34,7 +34,7 @@ function registerCommand() {
 
   program
     .command('init [type]')
-    .description('项目初始化')
+    .description('物料初始化')
     .option('--packagePath <packagePath>', '手动指定init包路径')
     .option('--force', '覆盖当前路径文件（谨慎使用）')
     .action(async (type, { packagePath, force }) => {
@@ -62,7 +62,7 @@ function registerCommand() {
 
   program
     .command('logout')
-    .description('登录')
+    .description('退出')
     .action(async () => {
       await logout();
     });
@@ -168,7 +168,7 @@ function cleanAll() {
 }
 
 async function prepare() {
-  checkPkgVersion(); // 检查当前运行版本
+  printLogo();
   checkNodeVersion(); // 检查 node 版本
   checkRoot(); // 检查是否为 root 启动
   checkUserHome(); // 检查用户主目录
@@ -183,7 +183,7 @@ async function checkGlobalUpdate() {
   const lastVersion = await getNpmLatestSemverVersion(constant.NPM_NAME, currentVersion);
   if (semver.gt(lastVersion, currentVersion)) {
     log.warn(
-      colors.yellow(`请手动更新 ${constant.NPM_NAME}，当前版本：${packageConfig.version}，最新版本：${lastVersion}
+      chalk.yellow(`请手动更新 ${constant.NPM_NAME}，当前版本：${packageConfig.version}，最新版本：${lastVersion}
                 更新命令： npm install -g ${constant.NPM_NAME}`),
     );
   }
@@ -230,24 +230,33 @@ function checkArgs(args) {
 
 function checkUserHome() {
   if (!homedir() || !fs.existsSync(homedir())) {
-    throw new Error(colors.red('当前登录用户主目录不存在！'));
+    throw new Error(chalk.red('当前登录用户主目录不存在！'));
   }
 }
 
 function checkRoot() {
   const rootCheck = require('root-check');
-  rootCheck(colors.red('请避免使用 root 账户启动本应用'));
+  rootCheck(chalk.red('请避免使用 root 账户启动本应用'));
 }
 
 function checkNodeVersion() {
   if (!semver.gte(process.version, constant.LOWEST_NODE_VERSION)) {
     throw new Error(
-      colors.red(`devlink-cli 需要安装 v${constant.LOWEST_NODE_VERSION} 以上版本的 Node.js`),
+      chalk.red(`devlink-cli 需要安装 v${constant.LOWEST_NODE_VERSION} 以上版本的 Node.js`),
     );
   }
 }
 
-function checkPkgVersion() {
-  log.success('今天又是美好的一天');
-  log.success('当前运行版本', packageConfig.version);
+function printLogo() {
+  console.info(
+    `
+      ██████╗ ███████╗██╗   ██╗██╗     ██╗███╗   ██╗██╗  ██╗  
+      ██╔══██╗██╔════╝██║   ██║██║     ██║████╗  ██║██║ ██╔╝  
+      ██║  ██║█████╗  ██║   ██║██║     ██║██╔██╗ ██║█████╔╝   
+      ██║  ██║██╔══╝  ╚██╗ ██╔╝██║     ██║██║╚██╗██║██╔═██╗   
+      ██████╔╝███████╗ ╚████╔╝ ███████╗██║██║ ╚████║██║  ██╗  
+      ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝
+                                                    version: ${packageConfig.version}
+    `,
+  );
 }

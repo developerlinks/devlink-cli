@@ -35,7 +35,7 @@
   "dependencies": {
     "@devlink/cli-auth": "^0.0.7",
     "@devlink/cli-utils": "^0.0.7",
-    "colors": "^1.4.0",
+    "chalk": "^4.0.0",
     "commander": "^10.0.0",
     "dotenv": "^16.0.1",
     "minimist": "^1.2.6",
