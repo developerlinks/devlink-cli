@@ -56,5 +56,5 @@ devlink --debug
 such as
 
 ```bash
-devlink init --packagePath /Users/bowling/code/devlinks/devlink-cli/packages/init/lib/ --debug
+devlink init --packagePath /Users/bowling/code/devlinks/devlink-cli/packages/init --debug
 ```

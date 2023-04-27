@@ -13,11 +13,21 @@ import {
   getLatestVersion,
   getNpmLatestSemverVersion,
   constant,
+  getSettings,
+  clearSettings,
+  showSettings,
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
+import { customizeSettings, runDevlinkSettingsHelp } from './settingsHandler';
 
 let config;
 let args;
+
+interface Config {
+  cliHome: string;
+  registry: string;
+  printLogo: boolean;
+}
 
 export default async function cli(): Promise<void> {
   try {
@@ -40,7 +50,7 @@ function registerCommand() {
     .action(async (type, { packagePath, force }) => {
       const packageName = '@devlink/cli-init';
       const packageVersion = await getLatestVersion(packageName);
-      await execCommand({ packagePath, packageName, packageVersion }, { type, force });
+      await executePackageCommand({ packagePath, packageName, packageVersion }, { type, force });
     });
 
   program
@@ -48,6 +58,13 @@ function registerCommand() {
     .description('登录')
     .action(async () => {
       await login();
+    });
+
+  program
+    .command('logout')
+    .description('退出')
+    .action(async () => {
+      await logout();
     });
 
   program
@@ -61,10 +78,21 @@ function registerCommand() {
     });
 
   program
-    .command('logout')
-    .description('退出')
-    .action(async () => {
-      await logout();
+    .command('settings')
+    .description('个性化配置')
+    .option('-c, --clear', '清除配置')
+    .option('-s, --show', '查看配置')
+    .option('-e, --edit', '编辑配置')
+    .action(async options => {
+      if (options.clear) {
+        clearSettings();
+      } else if (options.show) {
+        showSettings();
+      } else if (options.edit) {
+        customizeSettings();
+      } else {
+        runDevlinkSettingsHelp();
+      }
     });
 
   program
@@ -97,59 +125,81 @@ function registerCommand() {
   }
 }
 
-async function execCommand({ packagePath, packageName, packageVersion }, extraOptions) {
-  let rootFile;
-  try {
-    if (packagePath) {
-      const execPackage = new Package({
-        targetPath: packagePath,
-        storePath: packagePath,
-        name: packageName,
-        version: packageVersion,
-      });
-      rootFile = execPackage.getRootFilePath(true);
-    } else {
-      const { cliHome } = config;
-      const packageDir = `${constant.DEPENDENCIES_PATH}`;
-      const targetPath = path.resolve(cliHome, packageDir);
-      const storePath = path.resolve(targetPath, 'node_modules');
-      const initPackage = new Package({
-        targetPath,
-        storePath,
-        name: packageName,
-        version: packageVersion,
-      });
-      if (await initPackage.exists()) {
-        log.notice('更新 package');
-        await initPackage.update();
-      } else {
-        log.notice('安装 package');
-        await initPackage.install();
-      }
-      rootFile = initPackage.getRootFilePath();
-    }
-    const _config = Object.assign({}, config, extraOptions);
-    if (fs.existsSync(rootFile)) {
-      const code = `const { default: init } = require('${rootFile}'); init(${JSON.stringify(
-        _config,
-      )});`;
+interface ExtraOptionsIF {
+  type?: string;
+  force?: boolean;
+}
 
-      const p = exec('node', ['-e', code.replace(/\n/g, '')], { stdio: 'inherit' });
-      p.on('error', e => {
-        log.verbose('命令执行失败：', e);
-        handleError(e);
-        process.exit(1);
-      });
-      p.on('exit', c => {
-        log.verbose('命令执行成功', c);
-        process.exit(c);
-      });
+async function executePackageCommand(
+  { packagePath, packageName, packageVersion },
+  extraOptions: ExtraOptionsIF,
+) {
+  try {
+    const packageInstance = await getPackageInstance({ packagePath, packageName, packageVersion });
+    const rootFile = packageInstance.getRootFilePath(packagePath !== undefined);
+
+    if (!packagePath) {
+      await installOrUpdatePackage(packageInstance);
+    }
+
+    if (fs.existsSync(rootFile)) {
+      const _config = Object.assign({}, config, extraOptions);
+      runCodeFromPackage(rootFile, _config);
     } else {
       throw new Error('入口文件不存在，请重试！');
     }
   } catch (e) {
     log.error(e.message);
   }
+}
+
+async function getPackageInstance({ packagePath, packageName, packageVersion }) {
+  if (packagePath) {
+    return new Package({
+      targetPath: packagePath,
+      storePath: packagePath,
+      name: packageName,
+      version: packageVersion,
+    });
+  } else {
+    const { cliHome } = config;
+    const packageDir = `${constant.DEPENDENCIES_PATH}`;
+    const targetPath = path.resolve(cliHome, packageDir);
+    const storePath = path.resolve(targetPath, 'node_modules');
+    return new Package({
+      targetPath,
+      storePath,
+      name: packageName,
+      version: packageVersion,
+    });
+  }
+}
+
+async function installOrUpdatePackage(packageInstance) {
+  if (await packageInstance.exists()) {
+    log.notice('更新 package');
+    await packageInstance.update();
+  } else {
+    log.notice('安装 package');
+    await packageInstance.install();
+  }
+}
+
+function runCodeFromPackage(rootFile, _config) {
+  const code = `const { default: init } = require('${rootFile}'); init(${JSON.stringify(
+    _config,
+  )});`;
+
+  const p = exec('node', ['-e', code.replace(/\n/g, '')], { stdio: 'inherit' });
+  p.on('error', e => {
+    log.verbose('命令执行失败：', e);
+    handleError(e);
+    process.exit(1);
+  });
+  p.on('exit', c => {
+    log.verbose('命令执行成功', c);
+    process.exit(c);
+  });
 }
 
 function handleError(e) {
@@ -199,17 +249,15 @@ function checkEnv() {
   log.verbose('环境变量', config);
 }
 
-function createCliConfig() {
-  const cliConfig = {
-    home: homedir(),
-  };
-  if (process.env.CLI_HOME) {
-    cliConfig['cliHome'] = path.join(homedir(), process.env.CLI_HOME);
-  } else {
-    cliConfig['cliHome'] = path.join(homedir(), constant.DEFAULT_CLI_HOME);
-  }
-  return cliConfig;
-}
+const createCliConfig = () => {
+  const cliHome = process.env.CLI_HOME
+    ? path.join(homedir(), process.env.CLI_HOME)
+    : path.join(homedir(), constant.DEFAULT_CLI_HOME);
+
+  const settings = getSettings();
+
+  return { ...settings, cliHome };
+};
 
 function checkInputArgs() {
   log.verbose('开始校验输入参数');
@@ -236,13 +284,19 @@ function checkUserHome() {
 
 function checkRoot() {
   const rootCheck = require('root-check');
+  log.verbose('开始检查 root 权限');
   rootCheck(chalk.red('请避免使用 root 账户启动本应用'));
 }
 
 function checkNodeVersion() {
-  if (!semver.gte(process.version, constant.LOWEST_NODE_VERSION)) {
+  const currentVersion = process.version;
+  const lowestVersion = constant.LOWEST_NODE_VERSION;
+  log.verbose('开始检查 Node 版本');
+  if (!semver.gte(currentVersion, lowestVersion)) {
     throw new Error(
-      chalk.red(`devlink-cli 需要安装 v${constant.LOWEST_NODE_VERSION} 以上版本的 Node.js`),
+      chalk.red(
+        `devlink-cli 需要 Node.js ${lowestVersion} 以上版本，您当前的 Node.js 版本为 ${currentVersion}。`,
+      ),
     );
   }
 }

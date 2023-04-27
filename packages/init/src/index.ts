@@ -1,8 +1,13 @@
 import fs from 'fs';
 import fse from 'fs-extra';
 import path from 'path';
-import { log, inquirer, spinner, Package, sleep, exec } from '@devlink/cli-utils';
-import { fetchMyGroups, fetchMyMaterials } from './getProjectTemplate';
+import { log, inquirer, spinner, Package, exec, createChoices } from '@devlink/cli-utils';
+import {
+  fetchMaterialsByCollectionGroupId,
+  fetchMaterialsByGroupId,
+  fetchMyCollectionGroup,
+  fetchMyGroups,
+} from './fetch';
 
 interface Options {
   targetPath?: string;
@@ -10,69 +15,165 @@ interface Options {
   cliHome: string;
 }
 
-interface Template {
-  npmName: string;
+interface Material {
   name: string;
+  npmName: string;
+  description: string;
   version: string;
-  path?: string;
+  installCommand?: string;
   startCommand?: string;
+  ignore?: string;
+  isPrivate: boolean;
   groups: Group[];
+
+  // cli 新加字段
+  path?: string;
 }
+
 interface Group {
   id: string;
   name: string;
   description: string;
 }
 
-async function init(options: Options): Promise<void> {
+async function init(options: Options) {
   try {
-    // 设置 targetPath
-    let targetPath = process.cwd();
-    if (!options.targetPath) {
-      options.targetPath = targetPath;
-    }
+    options.targetPath ||= process.cwd();
     log.verbose('init', options);
-    // 完成项目初始化的准备和校验工作
-    const result: { materials: Template[]; groupNames: string[] } | undefined = await prepare(
-      options,
-    );
-    if (!result) {
-      log.info('创建项目终止');
-      return;
-    }
-    const { materials, groupNames } = result;
-
-    const choiceGroupName = await inquirer({
-      choices: createGroupChoice(groupNames),
-      message: '请选择分组',
-    });
-    log.verbose('choiceGroupName', choiceGroupName);
-    // materialsForChoiceGroup 筛选出分组名为 choiceGroupName 的物料
-    const materialsForChoiceGroup = materials.filter(material =>
-      material.groups.some(group => group.name === choiceGroupName),
-    );
-
-    // 缓存项目模板文件
-    const template: Template = await downloadTemplate(materialsForChoiceGroup, options);
-    log.verbose('template', template);
-    // 安装项目模板
-    await installTemplate(template, options);
+    await checkCurrentDirEmpty();
+    await cleanTargetDirIfNeeded(options);
+    const { materials } = await getMaterialsList();
+    log.verbose('materialObject', materials);
+    const material = await downloadMaterial(materials, options);
+    log.verbose('material', material);
+    await installDependencies(material, options);
+    await startMaterial(material, options);
   } catch (e) {
     log.error('Error:', e.message);
   }
 }
 
-async function npminstall(targetPath: string) {
-  return new Promise((resolve, reject) => {
-    const p = exec('npm', ['install'], { stdio: 'inherit', cwd: targetPath });
-    p.on('error', e => {
-      reject(e);
-      log.notice('如果是 cnpm 报的错，请安装 cnpm');
-    });
-    p.on('exit', c => {
-      resolve(c);
-    });
+async function checkCurrentDirEmpty() {
+  let fileList = fs
+    .readdirSync(process.cwd())
+    .filter(file => !['node_modules', '.git', '.DS_Store'].includes(file));
+  log.verbose('fileList', fileList);
+
+  if (
+    fileList.length > 0 &&
+    !(await inquirer({
+      type: 'confirm',
+      message: '当前文件夹不为空，是否继续创建物料？',
+      defaultValue: false,
+    }))
+  ) {
+    return;
+  }
+}
+
+async function cleanTargetDirIfNeeded(options: Options) {
+  log.verbose('options', options);
+  if (options.force) {
+    const targetDir = options.targetPath;
+    log.verbose('prepare targetDir', targetDir);
+    if (
+      await inquirer({
+        type: 'confirm',
+        message: '是否确认清空当下目录下的文件',
+        defaultValue: false,
+      })
+    ) {
+      fse.emptyDirSync(targetDir);
+      log.verbose('清空目录：', targetDir);
+    }
+  }
+}
+
+async function getMaterialsList() {
+  const type = await inquirer({
+    choices: [
+      { name: '个人分组', value: 'personal' },
+      { name: '收藏分组', value: 'collection' },
+    ],
+    message: '请选择分组类型',
+    type: 'list',
   });
+  log.verbose('type', type);
+
+  const fetchGroupData = type === 'personal' ? fetchMyGroups : fetchMyCollectionGroup;
+  const groups = (await fetchGroupData()).data[type === 'personal' ? 'groups' : 'collectionGroups'];
+
+  if (groups.length === 0) {
+    throw new Error(type === 'personal' ? '个人分组获取失败' : '收藏分组获取失败');
+  }
+
+  log.verbose('list', { groups });
+  const groupId = await inquirer({
+    choices: createChoices(groups, 'id', 'name'),
+    message: '请选择分组',
+    type: 'list',
+  });
+
+  log.verbose('groupId', groupId);
+  const fetchMaterialsData =
+    type === 'personal' ? fetchMaterialsByGroupId : fetchMaterialsByCollectionGroupId;
+  const materials = (await fetchMaterialsData(groupId)).data.materials;
+  return { materials };
+}
+
+async function downloadMaterial(materialList: Material[], options: Options) {
+  const materialName = await inquirer({
+    choices: createChoices(materialList, 'npmName', 'name'),
+    message: '请选择物料',
+  });
+  log.verbose('material', materialName);
+  const selectedMaterial = materialList.find(item => item.npmName === materialName);
+  log.verbose('selected material', selectedMaterial);
+  const { cliHome } = options;
+  const targetPath = path.resolve(cliHome, 'material');
+  // 基于物料生成 Package 对象
+  const materialPkg = new Package({
+    targetPath,
+    storePath: targetPath,
+    name: selectedMaterial.npmName,
+    version: selectedMaterial.version,
+  });
+  // 如果物料不存在则进行下载
+  if (!(await materialPkg.exists())) {
+    let spinnerStart = spinner(`正在下载物料...`);
+    await materialPkg.install();
+    spinnerStart.stop(true);
+    log.success('下载物料成功');
+  } else {
+    log.notice('物料已存在', `${selectedMaterial.npmName}@${selectedMaterial.version}`);
+    log.notice('物料路径', `${targetPath}`);
+  }
+
+  const materialPath = path.resolve(materialPkg.npmFilePath, 'material');
+  log.verbose('material path', materialPath);
+  if (!fs.existsSync(materialPath)) {
+    throw new Error(`[${materialPkg}]物料不存在！`);
+  }
+
+  return { ...selectedMaterial, path: materialPath };
+}
+
+async function installDependencies(material: Material, options: Options) {
+  const targetDir = options.targetPath!;
+  if (material.installCommand) {
+    const installCommand = material.installCommand.split(' ');
+    log.notice('开始安装依赖');
+    await execStartCommand(targetDir, installCommand);
+    log.success('依赖安装成功');
+  }
+}
+
+async function startMaterial(material: Material, options: Options) {
+  const targetDir = options.targetPath!;
+  if (material.startCommand) {
+    const startCommand = material.startCommand.split(' ');
+    await execStartCommand(targetDir, startCommand);
+  }
 }
 
 async function execStartCommand(targetPath: string, startCommand: string[]) {
@@ -87,128 +188,4 @@ async function execStartCommand(targetPath: string, startCommand: string[]) {
   });
 }
 
-async function installTemplate(template: Template, options: Options) {
-  // 安装模板
-  let spinnerStart = spinner(`正在安装模板...`);
-  await sleep(1000);
-  const sourceDir = template.path;
-  const targetDir = options.targetPath!;
-  fse.copySync(sourceDir, targetDir);
-  spinnerStart.stop(true);
-  log.success('模板安装成功');
-  // 安装依赖文件
-  log.notice('开始安装依赖');
-  await npminstall(targetDir);
-  log.success('依赖安装成功');
-  // 启动代码
-  if (template.startCommand) {
-    const startCommand = template.startCommand.split(' ');
-    await execStartCommand(targetDir, startCommand);
-  }
-}
-
-async function downloadTemplate(templateList: Template[], options: Options): Promise<Template> {
-  // 用户交互选择
-  const templateName = await inquirer({
-    choices: createTemplateChoice(templateList),
-    message: '请选择项目模板',
-  });
-  log.verbose('template', templateName);
-  const selectedTemplate = templateList.find(item => item.npmName === templateName);
-  log.verbose('selected template', selectedTemplate);
-  const { cliHome } = options;
-  const targetPath = path.resolve(cliHome, 'template');
-  // 基于模板生成 Package 对象
-  const templatePkg = new Package({
-    targetPath,
-    storePath: targetPath,
-    name: selectedTemplate.npmName,
-    version: selectedTemplate.version,
-  });
-  // 如果模板不存在则进行下载
-  if (!(await templatePkg.exists())) {
-    let spinnerStart = spinner(`正在下载模板...`);
-    await sleep(1000);
-    await templatePkg.install();
-    spinnerStart.stop(true);
-    log.success('下载模板成功');
-  } else {
-    log.notice('模板已存在', `${selectedTemplate.npmName}@${selectedTemplate.version}`);
-    log.notice('模板路径', `${targetPath}`);
-  }
-  // 生成模板路径
-  log.verbose('templatePkg', templatePkg);
-  const templatePath = path.resolve(templatePkg.npmFilePath, 'template');
-  log.verbose('template path', templatePath);
-  if (!fs.existsSync(templatePath)) {
-    throw new Error(`[${templateName}]项目模板不存在！`);
-  }
-  const template: Template = {
-    ...selectedTemplate,
-    path: templatePath,
-  };
-  return template;
-}
-async function prepare(options: Options) {
-  let fileList: string[] = fs.readdirSync(process.cwd());
-  fileList = fileList.filter(file => ['node_modules', '.git', '.DS_Store'].indexOf(file) < 0);
-  log.verbose('fileList', fileList);
-  let continueWhenDirNotEmpty: boolean = true;
-  if (fileList && fileList.length > 0) {
-    continueWhenDirNotEmpty = await inquirer({
-      type: 'confirm',
-      message: '当前文件夹不为空，是否继续创建项目？',
-      defaultValue: false,
-    });
-  }
-  log.verbose('continueWhenDirNotEmpty', continueWhenDirNotEmpty);
-
-  if (!continueWhenDirNotEmpty) {
-    return { materials: [], groupNames: [] };
-  }
-  log.verbose('options', options);
-  if (options.force) {
-    const targetDir = options.targetPath;
-    log.verbose('prepare targetDir', targetDir);
-    const confirmEmptyDir = await inquirer({
-      type: 'confirm',
-      message: '是否确认清空当下目录下的文件',
-      defaultValue: false,
-    });
-    if (confirmEmptyDir) {
-      fse.emptyDirSync(targetDir);
-    }
-  }
-  log.verbose('before getProjectTemplate');
-  const materialData = await fetchMyMaterials();
-  const materials = materialData.data.materials;
-  const groupData = await fetchMyGroups();
-  const groupNames = groupData.data.groups.map(item => item.name);
-  if (groupNames.length === 0) {
-    throw new Error('分组获取失败');
-  }
-  log.verbose('list', {
-    groupNames,
-    materials,
-  });
-
-  return {
-    groupNames,
-    materials,
-  };
-}
-
-function createTemplateChoice(list: Template[]) {
-  return list.map(item => ({
-    value: item.npmName,
-    name: item.name,
-  }));
-}
-
-function createGroupChoice(list: string[]) {
-  return list.map(item => ({
-    value: item,
-    name: item,
-  }));
-}
 export default init;

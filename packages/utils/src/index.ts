@@ -1,30 +1,14 @@
 import log from './log';
 import request from './request';
 import { getNpmRegistry, getNpmInfo, getLatestVersion, getNpmLatestSemverVersion } from './npm';
-import inquirer from './inquirer';
+import { createChoices, inquirerHandle } from './inquirer';
 import spinner from './spinner';
 import formatPath from './formatPath';
 import Package from './Package';
 import * as constant from './constant';
-
-function sleep(timeout: number): Promise<void> {
-  return new Promise(resolve => {
-    setTimeout(resolve, timeout);
-  });
-}
-
-function exec(
-  command: string,
-  args: string[],
-  options?: object,
-): ReturnType<typeof import('child_process').spawn> {
-  const win32 = process.platform === 'win32';
-
-  const cmd = win32 ? 'cmd' : command;
-  const cmdArgs = win32 ? ['/c'].concat(command, args) : args;
-
-  return require('child_process').spawn(cmd, cmdArgs, options || {});
-}
+import { generateHash } from './generateHash';
+import { exec } from './execCommand';
+import { clearSettings, setSettings, getSettings, showSettings } from './settings';
 
 export {
   log,
@@ -33,11 +17,16 @@ export {
   getNpmInfo,
   getLatestVersion,
   getNpmLatestSemverVersion,
-  inquirer,
+  inquirerHandle as inquirer,
+  createChoices,
   spinner,
   Package,
-  sleep,
   exec,
   formatPath,
   constant,
+  generateHash,
+  setSettings,
+  clearSettings,
+  getSettings,
+  showSettings,
 };

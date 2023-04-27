@@ -1,6 +1,14 @@
 import fs from 'fs';
+import os from 'os';
 import inquirer from 'inquirer';
-import { constant, log, request, spinner } from '@devlink/cli-utils';
+import { constant, generateHash, log, request, spinner } from '@devlink/cli-utils';
+
+export interface LoginByPasswordParams {
+  email: string;
+  password: string;
+  deviceId: string;
+  deviceType: string;
+}
 
 export async function login() {
   const questions = [
@@ -19,8 +27,19 @@ export async function login() {
   const { email, password } = await inquirer.prompt(questions);
   const spinnerStart = spinner('登录中～');
 
+  // 根据 os 获取设备信息
+
+  const { deviceId, deviceType } = getDeviceInfo(email);
+
+  const loginParams: LoginByPasswordParams = {
+    email,
+    password,
+    deviceId,
+    deviceType,
+  };
+
   try {
-    const response = await request.post('/auth/signin_by_password', { email, password });
+    const response = await request.post('/auth/signin_by_password', loginParams);
     fs.writeFileSync(constant.USER_INFO_PATH, JSON.stringify(response.data));
     spinnerStart.stop(true);
     log.success(`${response.data.user.username} 登录成功`);
@@ -28,4 +47,32 @@ export async function login() {
     spinnerStart.stop(true);
     log.error('登录失败', error.message);
   }
+}
+
+function getDeviceInfo(email: string) {
+  let deviceType = 'command:unknown';
+
+  const deviceInfo = {
+    os: os.type(),
+    osVersion: os.release(),
+    userName: os.userInfo().username,
+    hostname: os.hostname(),
+    email,
+  };
+
+  const deviceId = generateHash(deviceInfo);
+
+  // 获取操作系统信息
+  const platform = deviceInfo.os;
+  if (platform === 'Win32') {
+    deviceType = 'command:Windows';
+  } else if (platform === 'Darwin') {
+    deviceType = 'command:MacOS';
+  } else if (platform === 'Linux') {
+    deviceType = 'command:Linux';
+  }
+  return {
+    deviceId,
+    deviceType,
+  };
 }
