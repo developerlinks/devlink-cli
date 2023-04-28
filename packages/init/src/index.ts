@@ -101,7 +101,8 @@ async function getMaterialsList() {
   log.verbose('type', type);
 
   const fetchGroupData = type === 'personal' ? fetchMyGroups : fetchMyCollectionGroup;
-  const groups = (await fetchGroupData()).data[type === 'personal' ? 'groups' : 'collectionGroups'];
+  const groupData = await fetchGroupData();
+  const groups = groupData.data[type === 'personal' ? 'groups' : 'collectionGroups'];
 
   if (groups.length === 0) {
     throw new Error(type === 'personal' ? '个人分组获取失败' : '收藏分组获取失败');

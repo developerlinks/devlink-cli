@@ -1,5 +1,4 @@
-// settingsHandler.ts
-import { exec, setSettings } from '@devlink/cli-utils';
+import { setSettings } from '@devlink/cli-utils';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 
@@ -36,7 +35,7 @@ export async function customizeSettings(): Promise<void> {
 }
 
 async function customizeNpmSource(): Promise<void> {
-  const npmSourceChoices = ['taobao', 'npm'];
+  const npmSourceChoices = ['npm', 'taobao'];
 
   const npmSourceAnswer = await inquirer.prompt<{ registry: string }>([
     {
@@ -67,19 +66,4 @@ async function customizePrintLogo(): Promise<void> {
 
   console.log(chalk.green(`已设置打印 logo 为 ${settings.printLogo ? '开' : '关'}。`));
   setSettings(settings);
-}
-
-export function runDevlinkSettingsHelp() {
-  const command = 'devlink';
-  const args = ['settings', '--help'];
-
-  const process = exec(command, args, { stdio: 'inherit' });
-
-  process.on('error', error => {
-    console.error('Error:', error.message);
-  });
-
-  process.on('exit', code => {
-    console.log(`Process exited with code ${code}`);
-  });
 }

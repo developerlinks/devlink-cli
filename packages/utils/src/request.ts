@@ -1,4 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { login } from '@devlink/cli-auth';
+
 import log from './log';
 import fs from 'fs';
 import { USER_INFO_PATH } from './constant';
@@ -20,7 +22,7 @@ service.interceptors.request.use(
     }
     return config;
   },
-  (error: any): Promise<any> => {
+  error => {
     log.verbose('request error', error);
     return Promise.reject(error);
   },
@@ -31,8 +33,15 @@ service.interceptors.response.use(
     log.verbose('response', response.data);
     return response;
   },
-  (error: any): Promise<any> => {
-    log.verbose('response error', error);
+  error => {
+    log.verbose('response error', error.response.data.status);
+    if (error.response) {
+      const errorData = error.response.data;
+      const { status } = errorData;
+      if (status === 401) {
+        log.notice('身份验证失败，请使用 login 命令重新登录');
+      }
+    }
     return Promise.reject(error);
   },
 );

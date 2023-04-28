@@ -6,8 +6,6 @@ import log from './log';
 import { getNpmLatestSemverVersion, getNpmRegistry } from './npm';
 import formatPath from './formatPath';
 
-const useOriginNpm = true;
-
 interface PackageOptions {
   targetPath: string;
   storePath: string;
@@ -60,7 +58,7 @@ class Package {
     return npminstall({
       root: this.targetPath,
       storeDir: this.storePath,
-      registry: getNpmRegistry(useOriginNpm),
+      registry: getNpmRegistry(),
       pkgs: [
         {
           name: this.packageName,
@@ -113,7 +111,7 @@ class Package {
     return npminstall({
       root: this.targetPath,
       storeDir: this.storePath,
-      registry: getNpmRegistry(useOriginNpm),
+      registry: getNpmRegistry(),
       pkgs: [
         {
           name: this.packageName,

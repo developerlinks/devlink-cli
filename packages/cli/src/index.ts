@@ -18,16 +18,21 @@ import {
   showSettings,
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
-import { customizeSettings, runDevlinkSettingsHelp } from './settingsHandler';
-
-let config;
-let args;
+import { customizeSettings } from './settingsHandler';
 
 interface Config {
   cliHome: string;
-  registry: string;
-  printLogo: boolean;
+  registry?: string;
+  printLogo?: boolean;
 }
+
+interface ExtraOptionsIF {
+  type?: string;
+  force?: boolean;
+}
+
+let config: Config;
+let args;
 
 export default async function cli(): Promise<void> {
   try {
@@ -91,7 +96,7 @@ function registerCommand() {
       } else if (options.edit) {
         customizeSettings();
       } else {
-        runDevlinkSettingsHelp();
+        printSettingsHelp('settings');
       }
     });
 
@@ -123,11 +128,16 @@ function registerCommand() {
     program.outputHelp();
     console.log();
   }
-}
 
-interface ExtraOptionsIF {
-  type?: string;
-  force?: boolean;
+  function printSettingsHelp(settingsCommand: string) {
+    const command = program.commands.find(cmd => cmd.name() === settingsCommand);
+    if (!command) {
+      console.error(`${settingsCommand} command not found.`);
+      return;
+    }
+
+    console.log(command.helpInformation());
+  }
 }
 
 async function executePackageCommand(
@@ -218,12 +228,12 @@ function cleanAll() {
 }
 
 async function prepare() {
-  printLogo();
+  checkEnv(); // 检查环境变量
+  config?.printLogo ? printLogo() : null;
   checkNodeVersion(); // 检查 node 版本
   checkRoot(); // 检查是否为 root 启动
   checkUserHome(); // 检查用户主目录
   checkInputArgs(); // 检查用户输入参数
-  checkEnv(); // 检查环境变量
   await checkGlobalUpdate(); // 检查工具是否需要更新
 }
 

@@ -2,10 +2,14 @@ import axios from 'axios';
 import urlJoin from 'url-join';
 import semver from 'semver';
 import log from './log';
+import { getSettings } from './settings';
+
+const settings = getSettings();
 
 // 获取 registry 信息
-function getNpmRegistry(isOriginal = true): string {
-  return isOriginal ? 'https://registry.npmjs.org' : 'https://registry.npm.taobao.org';
+function getNpmRegistry(): string {
+  const registry = settings?.registry ?? 'npm';
+  return registry === 'npm' ? 'https://registry.npmjs.org' : 'https://registry.npm.taobao.org';
 }
 
 // 从 registry 获取 npm 的信息

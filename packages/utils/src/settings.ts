@@ -1,16 +1,16 @@
 import fs from 'fs';
 import chalk from 'chalk';
-import { constant, exec } from '.';
+import { SETTING_INFO_PATH } from './constant';
 
 export interface SettingsIF {
-  registry: string;
-  printLogo: boolean;
+  registry?: string;
+  printLogo?: boolean;
 }
 
 export function setSettings(settings: object): void {
   const settingsInfo = getSettings();
   const newSettingsInfo = Object.assign(settingsInfo, settings);
-  fs.writeFileSync(constant.SETTING_INFO_PATH, JSON.stringify(newSettingsInfo));
+  fs.writeFileSync(SETTING_INFO_PATH, JSON.stringify(newSettingsInfo));
   // 显示当前的配置
   console.log(chalk.green(`设置成功`));
   showSettings();
@@ -18,13 +18,13 @@ export function setSettings(settings: object): void {
 
 // 清除配置
 export function clearSettings(): void {
-  fs.writeFileSync(constant.SETTING_INFO_PATH, '{}');
+  fs.writeFileSync(SETTING_INFO_PATH, '{}');
   console.log(chalk.green(`清除成功`));
 }
 
 // 查看当前配置
-export function getSettings(): SettingsIF | {} {
-  const settingsFilePath = constant.SETTING_INFO_PATH;
+export function getSettings(): SettingsIF {
+  const settingsFilePath = SETTING_INFO_PATH;
   const settingsExist = fs.existsSync(settingsFilePath);
 
   return settingsExist ? JSON.parse(fs.readFileSync(settingsFilePath, 'utf8')) : {};
