@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { login } from '@devlink/cli-auth';
 
 import log from './log';
 import fs from 'fs';
