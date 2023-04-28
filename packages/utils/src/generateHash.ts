@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 export function generateHash(params) {
   const hash = crypto.createHash('md5');
-  const deviceInfoString = JSON.stringify(params).trim();
-  hash.update(deviceInfoString);
+  const paramsString = JSON.stringify(params).trim();
+  hash.update(paramsString);
   return hash.digest('hex');
 }
