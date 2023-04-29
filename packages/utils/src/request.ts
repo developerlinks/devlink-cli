@@ -7,7 +7,8 @@ import { USER_INFO_PATH } from './constant';
 const BASE_URL = 'https://devlink.wiki/api';
 // const BASE_URL = 'http://127.0.0.1:13000/api';
 
-const userInfo = JSON.parse(fs.readFileSync(USER_INFO_PATH, 'utf8')) || {};
+const isExisted = fs.existsSync(USER_INFO_PATH);
+const userInfo = isExisted ? JSON.parse(fs.readFileSync(USER_INFO_PATH, 'utf8')) : {};
 
 const service: AxiosInstance = axios.create({
   baseURL: BASE_URL,

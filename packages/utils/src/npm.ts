@@ -23,7 +23,7 @@ async function getNpmInfo(npm: string, registry?: string): Promise<any> {
       return response.data;
     }
   } catch (error) {
-    log.verbose('error', error);
+    log.verbose('getNpmInfo error', error);
     return Promise.reject(error);
   }
 }
