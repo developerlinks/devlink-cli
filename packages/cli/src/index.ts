@@ -146,11 +146,12 @@ async function executePackageCommand(
 ) {
   try {
     const packageInstance = await getPackageInstance({ packagePath, packageName, packageVersion });
-    const rootFile = packageInstance.getRootFilePath(packagePath !== undefined);
 
     if (!packagePath) {
       await installOrUpdatePackage(packageInstance);
     }
+
+    const rootFile = packageInstance.getRootFilePath(packagePath !== undefined);
 
     if (fs.existsSync(rootFile)) {
       const _config = Object.assign({}, config, extraOptions);
