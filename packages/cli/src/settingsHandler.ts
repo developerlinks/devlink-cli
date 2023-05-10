@@ -3,14 +3,9 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 
 interface Settings {
-  registry: string;
-  printLogo: boolean;
+  registry?: string;
+  printLogo?: boolean;
 }
-
-const settings: Settings = {
-  registry: 'npm',
-  printLogo: true,
-};
 
 export async function customizeSettings(): Promise<void> {
   const mainChoices = ['npm源', '是否打印logo'];
@@ -46,7 +41,9 @@ async function customizeNpmSource(): Promise<void> {
     },
   ]);
 
-  settings.registry = npmSourceAnswer.registry;
+  const settings: Settings = {
+    registry: npmSourceAnswer.registry,
+  };
 
   console.log(chalk.green(`已选择 ${npmSourceAnswer.registry} 作为 npm 源。`));
   setSettings(settings);
@@ -58,12 +55,12 @@ async function customizePrintLogo(): Promise<void> {
       type: 'confirm',
       name: 'printLogo',
       message: '是否打印 logo？',
-      default: settings.printLogo,
+      default: true,
     },
   ]);
-
-  settings.printLogo = printLogoAnswer.printLogo;
-
+  const settings: Settings = {
+    printLogo: printLogoAnswer.printLogo,
+  };
   console.log(chalk.green(`已设置打印 logo 为 ${settings.printLogo ? '开' : '关'}。`));
   setSettings(settings);
 }
