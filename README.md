@@ -5,6 +5,24 @@
 > 相关项目 [devlink-cli](https://github.com/developerlinks/devlink-cli) 、 [devlink-web](https://github.com/developerlinks/devlink-web) 、[devlink-server](https://github.com/developerlinks/devlink-server)
 
 🎳 cli tool for creating apps
+```shell
+ ~ devlink
+Usage: devlink <command> [options]
+
+Options:
+  -V, --version          output the version number
+  --debug                打开调试模式
+  -h, --help             display help for command
+
+Commands:
+  init [options] [type]  物料初始化
+  login                  登录
+  logout                 退出
+  whoami                 查询个人信息
+  settings [options]     个性化配置
+  clean [options]        清空缓存文件
+  help [command]         display help for command
+```
 
 ![devlink](https://qiniuyun.devlink.wiki/0e1bf62a2aae0b264a340da3e603f44fc7223a1e0e363b54cb4a2fe4a6655953.png)
 
