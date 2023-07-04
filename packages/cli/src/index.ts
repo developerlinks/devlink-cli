@@ -19,6 +19,7 @@ import {
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
 import { customizeSettings } from './settingsHandler';
+import { explainCode } from '@devlink/ai';
 
 interface Config {
   cliHome: string;
@@ -97,6 +98,18 @@ function registerCommand() {
         customizeSettings();
       } else {
         printSettingsHelp('settings');
+      }
+    });
+
+  program
+    .command('ai')
+    .description('ai')
+    .option('-e, --explainCode', '解释代码含义')
+    .option('-p, --path  <path>', '代码目录')
+    .action(async options => {
+      const { path } = options;
+      if (options.explainCode) {
+        explainCode(path);
       }
     });
 
