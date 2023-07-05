@@ -16,10 +16,11 @@ import {
   getSettings,
   clearSettings,
   showSettings,
+  spinner,
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
 import { customizeSettings } from './settingsHandler';
-import { explainCode } from '@devlink/ai';
+import { embeddingCode } from '@devlink/ai';
 
 interface Config {
   cliHome: string;
@@ -105,13 +106,38 @@ function registerCommand() {
     .command('ai')
     .description('ai')
     .option('-e, --explainCode', '解释代码含义')
-    .option('-p, --path  <path>', '代码目录')
-    .action(async options => {
-      const { path } = options;
-      if (options.explainCode) {
-        explainCode(path);
+    .option('-p, --path <path>', '代码目录')
+    .option('-f, --fileTypes <fileTypes>', '代码类型')
+    .option('-pt, --prompt <prompt>', 'prompt')
+    .action(handleExplainCodeCommand);
+
+  async function handleExplainCodeCommand(options) {
+    try {
+      const { path, fileTypes, prompt } = options;
+      const openAIApiKey = process.env.OPENAI_API_KEY;
+      const fileTypeArray = fileTypes.split(',');
+
+      if (!path || !fileTypeArray.length || !openAIApiKey) {
+        log.error(
+          'Invalid arguments. Please make sure the path, file types, and OpenAI API key are provided.',
+        );
+        return;
       }
-    });
+
+      const fileSpinnerStart = spinner('分析文件中～');
+      const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, openAIApiKey });
+      fileSpinnerStart.stop(true);
+
+      const input = prompt ?? 'Explain the meaning of these codes step by step.';
+      log.notice(`Executing: ${input}`);
+      const execSpinnerStart = spinner('推理中～');
+      const result = await agent.call({ input });
+      execSpinnerStart.stop(true);
+      log.success(`Got output: ${result.output}`);
+    } catch (error) {
+      log.error(`An error occurred while executing the command: ${error.message}`);
+    }
+  }
 
   program
     .command('clean')
