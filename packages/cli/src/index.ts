@@ -20,7 +20,7 @@ import {
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
 import { customizeSettings } from './settingsHandler';
-import { embeddingCode } from '@devlink/ai';
+import { embeddingCode, llmConfig } from '@devlink/ai';
 
 interface Config {
   cliHome: string;
@@ -41,7 +41,7 @@ export default async function cli(): Promise<void> {
     await prepare();
     registerCommand();
   } catch (e) {
-    log.error(e.message);
+    log.error('pre', e.message);
   }
 }
 
@@ -123,11 +123,12 @@ function registerCommand() {
         );
         return;
       }
-
       const fileSpinnerStart = spinner('分析文件中～');
-      const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, openAIApiKey });
+      const llmConfig: llmConfig = {
+        openAIApiKey,
+      };
+      const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, llmConfig });
       fileSpinnerStart.stop(true);
-
       const input = prompt ?? 'Explain the meaning of these codes step by step.';
       log.notice(`Executing: ${input}`);
       const execSpinnerStart = spinner('推理中～');
@@ -199,7 +200,7 @@ async function executePackageCommand(
       throw new Error('入口文件不存在，请重试！');
     }
   } catch (e) {
-    log.error(e.message);
+    log.error('executePackageCommand', e.message);
   }
 }
 
@@ -281,7 +282,7 @@ async function checkGlobalUpdate() {
   log.verbose('检查 @devlink/cli 最新版本');
   const currentVersion = packageConfig.version;
   const lastVersion = await getNpmLatestSemverVersion(constant.NPM_NAME, currentVersion);
-  if (semver.gt(lastVersion, currentVersion)) {
+  if (lastVersion && semver.gt(lastVersion, currentVersion)) {
     log.warn(
       chalk.yellow(`请手动更新 ${constant.NPM_NAME}，当前版本：${packageConfig.version}，最新版本：${lastVersion}
                 更新命令： npm install -g ${constant.NPM_NAME}`),
