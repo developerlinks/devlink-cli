@@ -1,4 +1,4 @@
-import { OpenAI } from 'langchain/llms/openai';
+import { AzureOpenAIInput, OpenAI, OpenAIInput } from 'langchain/llms/openai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import { TextLoader } from 'langchain/document_loaders/fs/text';
@@ -6,6 +6,7 @@ import { HNSWLib } from 'langchain/vectorstores/hnswlib';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
 import { VectorStoreToolkit, createVectorStoreAgent, VectorStoreInfo } from 'langchain/agents';
 import { Document } from 'langchain/dist/document';
+import { BaseLLMParams } from 'langchain/dist/llms/base';
 
 type LoaderObject = { [key: string]: (path: string) => TextLoader };
 
@@ -55,19 +56,31 @@ const embedDocuments = async (documents: Document[], embeddings: OpenAIEmbedding
 interface ExplainCodeOptions {
   directoryPath: string;
   fileTypeArray: string[];
-  openAIApiKey: string;
+  llmConfig: llmConfig;
 }
+
+/**
+ * @example
+ * const config: llmConfig = {
+ *   azureOpenAIApiVersion: '2022-12-01',
+ *   azureOpenAIApiKey: 'x',
+ *   azureOpenAIApiInstanceName: 'x',
+ *   azureOpenAIApiDeploymentName: 'x',
+ *   azureOpenAIApiEmbeddingsDeploymentName: 'x',
+ * };
+ */
+export type llmConfig = Partial<OpenAIInput> & Partial<AzureOpenAIInput> & BaseLLMParams;
 
 export const embeddingCode = async ({
   directoryPath,
   fileTypeArray,
-  openAIApiKey,
+  llmConfig,
 }: ExplainCodeOptions) => {
   try {
     const fileLoaders = createFileLoaders(fileTypeArray);
     const loader = new DirectoryLoader(directoryPath, fileLoaders);
-    const model = new OpenAI({ temperature: 0, openAIApiKey });
-    const embeddings = new OpenAIEmbeddings({ openAIApiKey });
+    const model = new OpenAI(llmConfig);
+    const embeddings = new OpenAIEmbeddings(llmConfig);
     const documents = await loadDocuments(loader);
     const code = documents.map(doc => doc.pageContent);
     const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000 });
