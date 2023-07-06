@@ -1,6 +1,6 @@
 {
   "name": "@devlink/cli",
-  "version": "0.0.13-alpha.0",
+  "version": "0.0.14-alpha.0",
   "description": "devlink cli",
   "keywords": [
     "cli"
@@ -33,7 +33,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@devlink/ai": "^0.0.13-alpha.0",
+    "@devlink/ai": "^0.0.14-alpha.0",
     "@devlink/cli-auth": "^0.0.9",
     "@devlink/cli-utils": "^0.0.9",
     "chalk": "^4.0.0",
