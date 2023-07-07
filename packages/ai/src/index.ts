@@ -56,31 +56,44 @@ const embedDocuments = async (documents: Document[], embeddings: OpenAIEmbedding
 interface ExplainCodeOptions {
   directoryPath: string;
   fileTypeArray: string[];
-  llmConfig: llmConfig;
+  openAIConfig: llmConfig;
+  openAIEmbeddingConfig: llmConfig;
 }
+
+export type llmConfig = Partial<OpenAIInput> & Partial<AzureOpenAIInput> & BaseLLMParams;
 
 /**
  * @example
- * const config: llmConfig = {
+ * const openAIConfig: llmConfig = {
+ *   openAIApiKey: 'x',
+ *   ...
+ * };
+ *
+ * const openAIEmbeddingConfig: llmConfig = {
+ *   openAIApiKey: 'x',
+ *   ...
+ * };
+ *
+ * const azureOpenAIConfig: llmConfig = {
  *   azureOpenAIApiVersion: '2022-12-01',
  *   azureOpenAIApiKey: 'x',
  *   azureOpenAIApiInstanceName: 'x',
  *   azureOpenAIApiDeploymentName: 'x',
  *   azureOpenAIApiEmbeddingsDeploymentName: 'x',
+ *   ...
  * };
  */
-export type llmConfig = Partial<OpenAIInput> & Partial<AzureOpenAIInput> & BaseLLMParams;
-
 export const embeddingCode = async ({
   directoryPath,
   fileTypeArray,
-  llmConfig,
+  openAIConfig,
+  openAIEmbeddingConfig,
 }: ExplainCodeOptions) => {
   try {
     const fileLoaders = createFileLoaders(fileTypeArray);
     const loader = new DirectoryLoader(directoryPath, fileLoaders);
-    const model = new OpenAI(llmConfig);
-    const embeddings = new OpenAIEmbeddings(llmConfig);
+    const model = new OpenAI(openAIConfig);
+    const embeddings = new OpenAIEmbeddings(openAIEmbeddingConfig);
     const documents = await loadDocuments(loader);
     const code = documents.map(doc => doc.pageContent);
     const textSplitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000 });

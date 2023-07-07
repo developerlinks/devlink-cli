@@ -124,10 +124,18 @@ function registerCommand() {
         return;
       }
       const fileSpinnerStart = spinner('分析文件中～');
-      const llmConfig: llmConfig = {
+      const openAIConfig: llmConfig = {
         openAIApiKey,
       };
-      const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, llmConfig });
+      const openAIEmbeddingConfig: llmConfig = {
+        openAIApiKey,
+      };
+      const { agent } = await embeddingCode({
+        directoryPath: path,
+        fileTypeArray,
+        openAIConfig,
+        openAIEmbeddingConfig,
+      });
       fileSpinnerStart.stop(true);
       const input = prompt ?? 'Explain the meaning of these codes step by step.';
       log.notice(`Executing: ${input}`);

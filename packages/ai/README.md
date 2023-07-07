@@ -24,22 +24,29 @@ The following is a sample usage of the package:
 ```typescript
 import { embeddingCode, llmConfig } from '@devlink/ai';
 
-const openaiConfig: llmConfig = {
-  openAIApiKey: 'your-openai-api-key'
+const openAIConfig: llmConfig = {
+  openAIApiKey: 'your-openai-api-key',
 };
 
-const options = {
-  directoryPath: './path/to/your/documents',
-  fileTypeArray: ['ts', 'js', 'rs'],
-  llmConfig: openaiConfig || azureConfig,
+const openAIEmbeddingConfig: llmConfig = {
+  openAIApiKey: 'your-openai-api-key',
 };
 
-const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, openaiConfig });
+const directoryPath = './path/to/your/documents';
+const fileTypeArray = ['ts', 'js', 'rs'];
+
+const { agent } = await embeddingCode({
+  directoryPath: path,
+  fileTypeArray,
+  openAIConfig,
+  openAIEmbeddingConfig,
+});
 const input = 'Explain the meaning of these codes step by step.';
 const result = await agent.call({ input });
 ```
 
 ## Use in @devlink/cli
+
 ![devlink/ai-examples](https://qiniuyun.devlink.wiki/devlink%3Aai-explame.png)
 
 ## API
@@ -52,7 +59,8 @@ The `embeddingCode` function is an asynchronous function that allows you to load
 export const embeddingCode = async ({
   directoryPath,
   fileTypeArray,
-  llmConfig,
+  openAIConfig,
+  openAIEmbeddingConfig,
 }: ExplainCodeOptions) => { ... }
 ```
 
@@ -60,7 +68,8 @@ export const embeddingCode = async ({
 
 - **directoryPath** (_string_): The path of the directory containing the documents to be loaded.
 - **fileTypeArray** (_string[]_): The file types to be loaded.
-- **llmConfig** (_llmConfig_): Configuration object for OpenAI language model.
+- **openAIConfig** (_llmConfig_): Configuration object for OpenAI language model.
+- **openAIEmbeddingConfig** (_llmConfig_): Configuration object for OpenAI Embedding model.
 
 #### Return:
 
@@ -81,11 +90,11 @@ The following code can be used as an example:
 ```typescript
 import { embeddingCode, llmConfig } from '@devlink/ai';
 
-const openaiConfig: llmConfig = {
-  openAIApiKey: 'your-openai-api-key'
+const openAIConfig: llmConfig = {
+  openAIApiKey: 'your-openai-api-key',
 };
 
-const azureConfig: llmConfig = {
+const azureOpenAIConfig: llmConfig = {
   azureOpenAIApiVersion: '2022-12-01',
   azureOpenAIApiKey: 'your-azure-openai-api-key',
   azureOpenAIApiInstanceName: 'your-azure-openai-api-instance-name',
@@ -93,15 +102,24 @@ const azureConfig: llmConfig = {
   azureOpenAIApiEmbeddingsDeploymentName: 'your-azure-openai-api-embeddings-deployment-name',
 };
 
-const options = {
-  directoryPath: './path/to/your/documents',
-  fileTypeArray: ['ts', 'js', 'rs'],
-  llmConfig: openaiConfig || azureConfig,
+// const openAIConfig = openaiConfig or azureOpenAIConfig;
+
+const directoryPath = './path/to/your/documents';
+const fileTypeArray = ['ts', 'js', 'rs'];
+
+const openAIEmbeddingConfig: llmConfig = {
+  openAIApiKey,
 };
 
-const llmConfig = openaiConfig or azureConfig;
+const directoryPath = './path/to/your/documents';
+const fileTypeArray = ['ts', 'js', 'rs'];
 
-const { agent } = await embeddingCode({ directoryPath: path, fileTypeArray, llmConfig });
+const { agent } = await embeddingCode({
+  directoryPath: path,
+  fileTypeArray,
+  openAIConfig,
+  openAIEmbeddingConfig,
+});
 const input = 'Explain the meaning of these codes step by step.';
 const result = await agent.call({ input });
 ```
