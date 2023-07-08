@@ -1,7 +1,7 @@
 import fs from 'fs';
 import fse from 'fs-extra';
 import path from 'path';
-import { log, inquirer, spinner, Package, exec, createChoices } from '@devlink/cli-utils';
+import { log, inquirer, SpinnerInstance, Package, exec, createChoices } from '@devlink/cli-utils';
 import {
   fetchMaterialsByCollectionGroupId,
   fetchMaterialsByGroupId,
@@ -141,9 +141,10 @@ async function downloadMaterial(materialList: Material[], options: Options) {
   });
   // 如果物料不存在则进行下载
   if (!(await materialPkg.exists())) {
-    let spinnerStart = spinner(`正在下载物料...`);
+    const spinnerInstance = SpinnerInstance(`正在下载物料`);
+    spinnerInstance.start();
     await materialPkg.install();
-    spinnerStart.stop(true);
+    spinnerInstance.stop(true);
     log.success('下载物料成功');
   } else {
     log.notice('物料已存在', `${selectedMaterial.npmName}@${selectedMaterial.version}`);
@@ -163,8 +164,11 @@ async function installDependencies(material: Material, options: Options) {
   const targetDir = options.targetPath!;
   if (material.installCommand) {
     const installCommand = material.installCommand.split(' ');
-    log.notice('开始安装依赖');
+    log.success('开始安装依赖');
+    const spinnerInstance = SpinnerInstance(`安装中`);
+    spinnerInstance.start();
     await execStartCommand(targetDir, installCommand);
+    spinnerInstance.stop(true);
     log.success('依赖安装成功');
   }
 }

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import inquirer from 'inquirer';
-import { constant, generateHash, log, request, spinner } from '@devlink/cli-utils';
+import { constant, generateHash, log, request, SpinnerInstance } from '@devlink/cli-utils';
 
 export interface LoginByPasswordParams {
   email: string;
@@ -25,8 +25,8 @@ export async function login() {
   ];
 
   const { email, password } = await inquirer.prompt(questions);
-  const spinnerStart = spinner('登录中～');
-
+  const spinnerInstance = SpinnerInstance('登录中');
+  spinnerInstance.start();
   // 根据 os 获取设备信息
 
   const { deviceId, deviceType } = getDeviceInfo(email);
@@ -41,10 +41,10 @@ export async function login() {
   try {
     const response = await request.post('/auth/signin_by_password', loginParams);
     fs.writeFileSync(constant.USER_INFO_PATH, JSON.stringify(response.data));
-    spinnerStart.stop(true);
+    spinnerInstance.stop(true);
     log.success(`${response.data.user.username} 登录成功`);
   } catch (error) {
-    spinnerStart.stop(true);
+    spinnerInstance.stop(true);
     log.error('登录失败', error.message);
   }
 }

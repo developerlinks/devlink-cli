@@ -16,7 +16,7 @@ import {
   getSettings,
   clearSettings,
   showSettings,
-  spinner,
+  SpinnerInstance,
 } from '@devlink/cli-utils';
 import packageConfig from '../package.json';
 import { customizeSettings } from './settingsHandler';
@@ -112,6 +112,8 @@ function registerCommand() {
     .action(handleExplainCodeCommand);
 
   async function handleExplainCodeCommand(options) {
+    const execSpinnerStart = SpinnerInstance('推理中');
+    const fileSpinnerInstance = SpinnerInstance('分析文件中');
     try {
       const { path, fileTypes, prompt } = options;
       const openAIApiKey = process.env.OPENAI_API_KEY;
@@ -120,30 +122,38 @@ function registerCommand() {
       if (!path || !fileTypeArray.length || !openAIApiKey) {
         log.error(
           'Invalid arguments. Please make sure the path, file types, and OpenAI API key are provided.',
+          `path: ${path}`,
+          `fileTypeArray: ${fileTypeArray}`,
+          `openAIApiKey: ${openAIApiKey}`,
         );
         return;
       }
-      const fileSpinnerStart = spinner('分析文件中～');
+      fileSpinnerInstance.start();
       const openAIConfig: llmConfig = {
         openAIApiKey,
       };
       const openAIEmbeddingConfig: llmConfig = {
         openAIApiKey,
       };
-      const { agent } = await embeddingCode({
+
+      const llmConfig = {
         directoryPath: path,
         fileTypeArray,
         openAIConfig,
         openAIEmbeddingConfig,
-      });
-      fileSpinnerStart.stop(true);
+      };
+
+      const { agent } = await embeddingCode(llmConfig);
+      fileSpinnerInstance.stop(true);
       const input = prompt ?? 'Explain the meaning of these codes step by step.';
       log.notice(`Executing: ${input}`);
-      const execSpinnerStart = spinner('推理中～');
+      execSpinnerStart.start();
       const result = await agent.call({ input });
       execSpinnerStart.stop(true);
       log.success(`Got output: ${result.output}`);
     } catch (error) {
+      fileSpinnerInstance.stop(true);
+      execSpinnerStart.stop(true);
       log.error(`An error occurred while executing the command: ${error.message}`);
     }
   }

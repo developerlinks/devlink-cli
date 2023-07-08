@@ -2,7 +2,7 @@ import log from './log';
 import request from './request';
 import { getNpmRegistry, getNpmInfo, getLatestVersion, getNpmLatestSemverVersion } from './npm';
 import { createChoices, inquirerHandle } from './inquirer';
-import spinner from './spinner';
+import SpinnerInstance from './spinner';
 import formatPath from './formatPath';
 import Package from './Package';
 import * as constant from './constant';
@@ -19,7 +19,7 @@ export {
   getNpmLatestSemverVersion,
   inquirerHandle as inquirer,
   createChoices,
-  spinner,
+  SpinnerInstance,
   Package,
   exec,
   formatPath,
